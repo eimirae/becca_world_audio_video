@@ -24,11 +24,11 @@ class World(BaseWorld):
         if lifespan is not None:
             self.LIFESPAN = lifespan
         # Flag indicates whether the world is in testing mode
-        self.TEST = False # was .971 at 530K, test at 700K
+        self.TEST = False # was .971 at 530K, .942 at 610K, .938 at 800K
         self.short_test = False
         self.VISUALIZE_PERIOD = 10 ** 3
         self.plot_all_features = False
-        self.fov_span = 10
+        self.fov_span = 25
         self.name = 'watch_world'
         print "Entering", self.name
         # Generate a list of the filenames to be used
@@ -105,6 +105,7 @@ class World(BaseWorld):
         
     def set_agent_parameters(self, agent):
         agent.VISUALIZE_PERIOD = self.VISUALIZE_PERIOD
+        agent.BACKUP_PERIOD = 10 ** 3
         agent.recent_surprise_history = [16.] * 100
         agent.typical_surprise = 16.
         agent.filtered_surprise = agent.typical_surprise
