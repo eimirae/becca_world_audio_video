@@ -24,13 +24,13 @@ class World(BaseWorld):
         if lifespan is not None:
             self.LIFESPAN = lifespan
         # Flag indicates whether the world is in testing mode
-        self.TEST = False
         self.short_test = False
+        self.TEST = True
+        self.plot_all_features = True
         self.VISUALIZE_PERIOD = 2 * 10 ** 3
-        self.plot_all_features = False
         self.fov_span = 10
         #self.name = 'watch_world'
-        #self.name = 'watch_world_bpc2'
+        #self.name = 'watch_world_bpc3'
         self.name = 'watch_world_bpc10_long'
         print "Entering", self.name
         # Generate a list of the filenames to be used
