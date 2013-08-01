@@ -7,9 +7,15 @@ import sys
 
 from worlds.base_world import World as BaseWorld
 import core.tools as tools
+<<<<<<< HEAD
 import becca_tools_control_panel.control_panel as cp
 import becca_world_listen as listen
 import worlds.world_tools as wtools
+=======
+import becca_utils_control_panel.control_panel as cp
+import becca_world_listen as listen
+import worlds.world_utils as wut
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
 
 class World(BaseWorld):
     """ The watch world provides a sequence of video frames to the BECCA agent
@@ -24,6 +30,7 @@ class World(BaseWorld):
         if lifespan is not None:
             self.LIFESPAN = lifespan
         # Flag indicates whether the world is in testing mode
+<<<<<<< HEAD
         self.short_test = False
         self.TEST = True
         self.VISUALIZE_PERIOD = 2 * 10 ** 3
@@ -32,6 +39,14 @@ class World(BaseWorld):
         #self.name = 'watch_world'
         self.name = 'watch_world_bpc3'
         #self.name = 'watch_world_bpc10_long'
+=======
+        self.TEST = False # was .971 at 530K, .942 at 610K, .938 at 800K
+        self.short_test = False
+        self.VISUALIZE_PERIOD = 10 ** 3
+        self.plot_all_features = False
+        self.fov_span = 25
+        self.name = 'watch_world'
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
         print "Entering", self.name
         # Generate a list of the filenames to be used
         self.video_filenames = []
@@ -63,6 +78,10 @@ class World(BaseWorld):
         self.num_actions = 0
         self.initialize_control_panel()
         self.frame_counter = 10000
+<<<<<<< HEAD
+=======
+        #self.last_feature_visualized = 0
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
         self.frames_per_step = 3
         if self.TEST:
             self.surprise_log_filename = os.path.join('becca_world_watch', 
@@ -96,7 +115,11 @@ class World(BaseWorld):
         self.clip_frame += self.frames_per_step
         image = image.astype('float') / 256.
         self.intensity_image = np.sum(image, axis=2) / 3.
+<<<<<<< HEAD
         center_surround_pixels = wtools.center_surround(self.intensity_image,
+=======
+        center_surround_pixels = wut.center_surround(self.intensity_image,
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
                                                      self.fov_span)
         unsplit_sensors = center_surround_pixels.ravel()
         self.sensors = np.concatenate((np.maximum(unsplit_sensors, 0), 
@@ -106,6 +129,13 @@ class World(BaseWorld):
         
     def set_agent_parameters(self, agent):
         agent.VISUALIZE_PERIOD = self.VISUALIZE_PERIOD
+<<<<<<< HEAD
+=======
+        agent.BACKUP_PERIOD = 10 ** 3
+        agent.recent_surprise_history = [16.] * 100
+        agent.typical_surprise = 16.
+        agent.filtered_surprise = agent.typical_surprise
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
         if self.TEST:
             # Prevent the agent from adapting during testing
             agent.BACKUP_PERIOD = 10 ** 9
@@ -227,6 +257,10 @@ class World(BaseWorld):
         if (self.timestep % self.VISUALIZE_PERIOD != 0):
             return 
         print self.timestep, 'steps'
+<<<<<<< HEAD
+=======
+        
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
         (projections, feature_activities) = agent.get_projections()
         # Make a copy of projections for finding the interpretation
         interpretation_by_feature = list(projections)
@@ -241,10 +275,17 @@ class World(BaseWorld):
                         this_feature_interpretation *
                         feature_activities[block_index][feature_index])
         self.original_image.set_data(self.intensity_image)
+<<<<<<< HEAD
         sensed_image_array = wtools.vizualize_pixel_array_feature(
                 self.sensors[:,np.newaxis], array_only=True) 
         self.sensed_image.set_data(sensed_image_array[0])
         interpreted_image_array = wtools.vizualize_pixel_array_feature(
+=======
+        sensed_image_array = wut.vizualize_pixel_array_feature(
+                self.sensors[:,np.newaxis], array_only=True) 
+        self.sensed_image.set_data(sensed_image_array[0])
+        interpreted_image_array = wut.vizualize_pixel_array_feature(
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
                 interpretation[:self.num_sensors], array_only=True) 
         self.interpreted_image.set_data(interpreted_image_array[0])
         # Update status window 
@@ -343,12 +384,46 @@ class World(BaseWorld):
                         'Activities', color=tools.LIGHT_GREY, 
                         size=10, ha='left', va='bottom')
             self.block_ax.append(ax)
+<<<<<<< HEAD
         if self.print_all_features:
             log_directory = os.path.join('becca_world_watch', 'log')
             wtools.print_pixel_array_features(projections, self.num_sensors,
                                               self.num_actions, 
                                               directory=log_directory,
                                               world_name='watch')
+=======
+        for block_index in range(num_blocks - 1):
+            if self.plot_all_features:
+                for feature_index in range(len(projections[block_index])):
+                    states_per_feature = block_index + 2
+                    plt.close(99)
+                    feature_fig = plt.figure(num=99)
+                    projection_image_list = ( 
+                            wut.vizualize_pixel_array_feature(
+                            projections[block_index][feature_index]
+                            [:self.num_sensors,:], 
+                            array_only=True)) 
+                    for state_index in range(states_per_feature): 
+                        left =  (float(state_index) / 
+                                 float(states_per_feature))
+                        bottom = 0.
+                        width =  1. /  float(states_per_feature)
+                        height =  1
+                        rect = (left, bottom, width, height)
+                        ax = feature_fig.add_axes(rect)
+                        plt.gray()
+                        ax.imshow(projection_image_list[state_index],
+                                  interpolation='nearest',
+                                  vmin=0., vmax=1.)
+                    # create a plot of individual features
+                    filename = '_'.join(('block', str(block_index).zfill(2),
+                                         'feature',str(feature_index).zfill(4),
+                                         'watch', 'world.png'))
+                    full_filename = os.path.join('becca_world_watch',
+                                                 'log', filename)
+                    plt.title(filename)
+                    plt.savefig(full_filename, format='png') 
+>>>>>>> 47dad762505686f6e40ed9bdbcb42b2462b90d47
         self.fig.canvas.draw()
         plt.draw()
         # Save the control panel image
