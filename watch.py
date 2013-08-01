@@ -30,7 +30,7 @@ class World(BaseWorld):
         self.print_all_features = True
         self.fov_span = 10
         #self.name = 'watch_world'
-        self.name = 'watch_world_bpc2'
+        self.name = 'watch_world_bpc3'
         #self.name = 'watch_world_bpc10_long'
         print "Entering", self.name
         # Generate a list of the filenames to be used
@@ -346,6 +346,7 @@ class World(BaseWorld):
         if self.print_all_features:
             log_directory = os.path.join('becca_world_watch', 'log')
             wtools.print_pixel_array_features(projections, self.num_sensors,
+                                              self.num_actions, 
                                               directory=log_directory,
                                               world_name='watch')
         self.fig.canvas.draw()
