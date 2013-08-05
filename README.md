@@ -9,7 +9,7 @@ In `tester.py`, add the line:
 ```
 from becca_world_watch.watch import World
 ```
-and comment out all other World import lines.
+and comment out all other World import lines. The watch world also makes use of the OpenCV libraries through their python bindings, it imports `cv2`.
 
 Typing `python tester.py` at the command line will run the listen world. It draws training data from all `.flv` and '.mp4' files that it finds in the `becca_world_watch/data` directory. 
 
