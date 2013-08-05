@@ -8,7 +8,6 @@ import sys
 from worlds.base_world import World as BaseWorld
 import core.tools as tools
 import becca_tools_control_panel.control_panel as cp
-import becca_world_listen as listen
 import worlds.world_tools as wtools
 
 class World(BaseWorld):
@@ -25,13 +24,11 @@ class World(BaseWorld):
             self.LIFESPAN = lifespan
         # Flag indicates whether the world is in testing mode
         self.short_test = False
-        self.TEST = True
-        self.VISUALIZE_PERIOD = 2 * 10 ** 3
-        self.print_all_features = True
+        self.TEST = False
+        self.VISUALIZE_PERIOD = 5 * 10 ** 3
+        self.print_all_features = False
         self.fov_span = 10
-        #self.name = 'watch_world'
-        self.name = 'watch_world_bpc3'
-        #self.name = 'watch_world_bpc10_long'
+        self.name = 'watch_world'
         print "Entering", self.name
         # Generate a list of the filenames to be used
         self.video_filenames = []
@@ -112,9 +109,13 @@ class World(BaseWorld):
             for block in agent.blocks:
                 block.ziptie.COACTIVITY_UPDATE_RATE = 0.
                 block.ziptie.JOINING_THRESHOLD = 2.
+                block.ziptie.AGGLOMERATION_ENERGY_RATE = 0.
+                block.ziptie.NUCLEATION_ENERGY_RATE = 0.
                 for cog in block.cogs:
                     cog.ziptie.COACTIVITY_UPDATE_RATE = 0.
                     cog.ziptie.JOINING_THRESHOLD = 2.
+                    cog.ziptie.AGGLOMERATION_ENERGY_RATE = 0.
+                    cog.ziptie.NUCLEATION_ENERGY_RATE = 0.
                     cog.daisychain.CHAIN_UPDATE_RATE = 0.
         else:
             pass
@@ -346,8 +347,9 @@ class World(BaseWorld):
         if self.print_all_features:
             log_directory = os.path.join('becca_world_watch', 'log')
             wtools.print_pixel_array_features(projections, self.num_sensors,
-                                              self.num_actions, directory=log_directory,
-                                              world_name='watch')
+                                              self.num_actions, 
+                                              directory=log_directory,
+                                              world_name=self.name)
         self.fig.canvas.draw()
         plt.draw()
         # Save the control panel image
