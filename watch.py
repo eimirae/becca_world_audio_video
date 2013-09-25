@@ -25,8 +25,8 @@ class World(BaseWorld):
         # Flag indicates whether the world is in testing mode
         self.short_test = False
         self.TEST = False
-        self.VISUALIZE_PERIOD = 5 * 10 ** 3
-        self.print_all_features = False
+        self.VISUALIZE_PERIOD =  10 ** 4
+        self.print_all_features = True
         self.fov_span = 10
         self.name = 'watch_world'
         print "Entering", self.name
@@ -54,8 +54,8 @@ class World(BaseWorld):
         # Initialize the video data to be viewed
         self.initialize_video_file()
 
-        self.VALUE_RANGE_DECAY_RATE = 10 ** -1
-        self.BIN_RANGE_DECAY_RATE = 10 ** -4
+        #self.VALUE_RANGE_DECAY_RATE = 10 ** -1
+        #self.BIN_RANGE_DECAY_RATE = 10 ** -4
         self.num_sensors = 2 * self.fov_span ** 2
         self.num_actions = 0
         self.initialize_control_panel()
@@ -106,6 +106,7 @@ class World(BaseWorld):
         if self.TEST:
             # Prevent the agent from adapting during testing
             agent.BACKUP_PERIOD = 10 ** 9
+            agent.recent_surprise_history = [35.] * 100
             for block in agent.blocks:
                 block.ziptie.COACTIVITY_UPDATE_RATE = 0.
                 block.ziptie.JOINING_THRESHOLD = 2.
