@@ -23,11 +23,12 @@ class World(BaseWorld):
         if lifespan is not None:
             self.LIFESPAN = lifespan
         # Flag indicates whether the world is in testing mode
-        self.short_test = False
+        #self.short_test = False
         self.TEST = False
         self.VISUALIZE_PERIOD =  10 ** 4
         self.print_all_features = True
-        self.fov_span = 10
+        self.fov_horz_span = 16
+        self.fov_vert_span = 12
         self.name = 'watch_world'
         print "Entering", self.name
         # Generate a list of the filenames to be used
@@ -56,7 +57,7 @@ class World(BaseWorld):
 
         #self.VALUE_RANGE_DECAY_RATE = 10 ** -1
         #self.BIN_RANGE_DECAY_RATE = 10 ** -4
-        self.num_sensors = 2 * self.fov_span ** 2
+        self.num_sensors = 2 * self.fov_horz_span * self.fov_vert_span
         self.num_actions = 0
         self.initialize_control_panel()
         self.frame_counter = 10000
@@ -93,8 +94,8 @@ class World(BaseWorld):
         self.clip_frame += self.frames_per_step
         image = image.astype('float') / 256.
         self.intensity_image = np.sum(image, axis=2) / 3.
-        center_surround_pixels = wtools.center_surround(self.intensity_image,
-                                                     self.fov_span)
+        center_surround_pixels = wtools.center_surround(
+                self.intensity_image, self.fov_horz_span, self.fov_vert_span)
         unsplit_sensors = center_surround_pixels.ravel()
         self.sensors = np.concatenate((np.maximum(unsplit_sensors, 0), 
                                        np.abs(np.minimum(unsplit_sensors, 0))))
@@ -106,7 +107,7 @@ class World(BaseWorld):
         if self.TEST:
             # Prevent the agent from adapting during testing
             agent.BACKUP_PERIOD = 10 ** 9
-            agent.recent_surprise_history = [35.] * 100
+            #agent.recent_surprise_history = [35.] * 100
             for block in agent.blocks:
                 block.ziptie.COACTIVITY_UPDATE_RATE = 0.
                 block.ziptie.JOINING_THRESHOLD = 2.
@@ -124,23 +125,24 @@ class World(BaseWorld):
     def initialize_control_panel(self):
         self.fig = cp.figure()
         self.ax_original_image = cp.subfigure(self.fig, 
-                left=0., bottom=0.4, width=0.35, height=0.6)
+                left=0., bottom=0.4, width=0.45, height=0.6)
         self.ax_sensed_image = cp.subfigure(self.fig, 
-                left=0.35, bottom=0.6, width=0.25, height=0.4)
+                left=0., bottom=0., width=0.3, height=0.4)
         self.ax_interpreted_image = cp.subfigure(self.fig, 
-                left=0.35, bottom=0.2, width=0.25, height=0.4)
+                left=0.3, bottom=0., width=0.3, height=0.4)
         self.ax_status = cp.subfigure(self.fig, 
-                left=0.35, bottom=0., width=0.4, height=0.2)
-        self.ax_image_history = cp.subfigure(self.fig, 
-                left=0., bottom=0., width=0.35, height=0.4)
+                left=0.45, bottom=0.4, width=0.15, height=0.6)
+        #self.ax_image_history = cp.subfigure(self.fig, 
+        #        left=0., bottom=0., width=0.35, height=0.4)
 
         # Initialize original image 
         plt.gray()
         self.original_image = self.ax_original_image.imshow(
-                np.zeros((10,10)), vmin=0., vmax=1., interpolation='nearest', 
+                np.zeros((self.fov_vert_span, self.fov_horz_span)), 
+                vmin=0., vmax=1., interpolation='nearest', 
                 animated=True)
-        self.ax_original_image.text(-1.2, -1., 'Original image', 
-                                    size=10, color=tools.DARK_GREY,
+        self.ax_original_image.text(-.01, -.01, 'Original image', 
+                                    size=10, color=tools.OXIDE,
                                     ha='left', va='center')
         self.ax_original_image.get_xaxis().set_visible(False)
         self.ax_original_image.get_yaxis().set_visible(False)
@@ -148,10 +150,11 @@ class World(BaseWorld):
         # Initialize sensed image
         plt.gray()
         self.sensed_image = self.ax_sensed_image.imshow(
-                np.zeros((10,10)), vmin=0., vmax=1., interpolation='nearest', 
+                np.zeros((self.fov_vert_span, self.fov_horz_span)), 
+                vmin=0., vmax=1., interpolation='nearest', 
                 animated=True)
-        self.ax_sensed_image.text(-1.2, -1., 'Sensed image', 
-                                    size=10, color=tools.DARK_GREY,
+        self.ax_sensed_image.text(-.01, -.01, 'Sensed image', 
+                                    size=10, color=tools.OXIDE,
                                     ha='left', va='center')
         self.ax_sensed_image.get_xaxis().set_visible(False)
         self.ax_sensed_image.get_yaxis().set_visible(False)
@@ -160,35 +163,37 @@ class World(BaseWorld):
         # Initialize interpreted image
         plt.gray()
         self.interpreted_image = self.ax_interpreted_image.imshow(
-                np.zeros((10,10)), vmin=0., vmax=1., interpolation='nearest', 
+                np.zeros((self.fov_vert_span, self.fov_horz_span)), 
+                vmin=0., vmax=1., interpolation='nearest', 
                 animated=True)
-        self.ax_interpreted_image.text(-1.2, -1., 'Interpreted image', 
-                                    size=10, color=tools.DARK_GREY,
+        self.ax_interpreted_image.text(-.01, -.01, 'Interpreted image', 
+                                    size=10, color=tools.OXIDE,
                                     ha='left', va='center')
         self.ax_interpreted_image.get_xaxis().set_visible(False)
         self.ax_interpreted_image.get_yaxis().set_visible(False)
-
-        # Initialize image history
 
         # Initialize status window 
         self.ax_status.axis((0., 1., 0., 1.))
         self.ax_status.get_xaxis().set_visible(False)
         self.ax_status.get_yaxis().set_visible(False)
-        self.age_status = self.ax_status.text(-0.05, 0.9,
-                    'Clip time: 0 min', 
-                    color=tools.DARK_GREY, size=10, ha='left', va='center')
-        self.cumulative_age_status = self.ax_status.text(-0.05, 0.7,
-                    'Total time: 0 min', 
-                    color=tools.DARK_GREY, size=10, ha='left', va='center')
+        self.clip_time_status = self.ax_status.text(-0.05, 0.13,
+                    'Clip time:', 
+                    color=tools.COPPER_SHADOW, size=10, ha='left', va='center')
+        self.wake_time_status = self.ax_status.text(-0.05, 0.08,
+                    'Wake time:', 
+                    color=tools.COPPER_SHADOW, size=10, ha='left', va='center')
+        self.life_time_status = self.ax_status.text(-0.05, 0.03,
+                    'Life time:', 
+                    color=tools.COPPER_SHADOW, size=10, ha='left', va='center')
         self.surprise_status = self.ax_status.text(-0.05, 0.4,
                     'Novelty: ', 
-                    color=tools.DARK_GREY, size=10, ha='left', va='center')
+                    color=tools.COPPER_SHADOW, size=10, ha='left', va='center')
 
         # Initialize surprise plot 
         self.surprise_ax_left = 0.6
-        self.surprise_ax_bottom = 0.6
+        self.surprise_ax_bottom = 0.56
         self.surprise_ax_width = 0.4
-        self.surprise_ax_height = 0.4
+        self.surprise_ax_height = 0.44
         self.ax_surprise = cp.subfigure(self.fig, left=self.surprise_ax_left, 
                             bottom=self.surprise_ax_bottom, 
                             width=self.surprise_ax_width, 
@@ -196,15 +201,15 @@ class World(BaseWorld):
         self.ax_surprise.axis((0., 1., 0., 1.))
         self.ax_surprise.get_xaxis().set_visible(False)
         self.ax_surprise.get_yaxis().set_visible(False)
-        self.block_ax_vert_border = 0.01 * self.surprise_ax_height
+        self.block_ax_vert_border = 0.02 * self.surprise_ax_height
         self.block_ax_horz_border = 0.04 * self.surprise_ax_width
         self.surprise_block_ax = []
         
         # Initialize features plot 
         self.feature_ax_left = 0.6
-        self.feature_ax_bottom = 0.2
+        self.feature_ax_bottom = 0.12
         self.feature_ax_width = 0.4
-        self.feature_ax_height = 0.4
+        self.feature_ax_height = 0.44
         self.ax_features = cp.subfigure(self.fig, left=self.feature_ax_left, 
                             bottom=self.feature_ax_bottom, 
                             width=self.feature_ax_width, 
@@ -212,7 +217,7 @@ class World(BaseWorld):
         self.ax_features.axis((0., 1., 0., 1.))
         self.ax_features.get_xaxis().set_visible(False)
         self.ax_features.get_yaxis().set_visible(False)
-        self.feature_ax_vert_border = 0.025 * self.feature_ax_height
+        self.feature_ax_vert_border = 0.028 * self.feature_ax_height
         self.feature_ax_horz_border = 0.005 * self.feature_ax_width
         self.block_ax = []
         self.fig.show()
@@ -243,23 +248,26 @@ class World(BaseWorld):
                         this_feature_interpretation *
                         feature_activities[block_index][feature_index])
         self.original_image.set_data(self.intensity_image)
-        sensed_image_array = wtools.vizualize_pixel_array_feature(
-                self.sensors[:,np.newaxis], array_only=True) 
+        sensed_image_array = wtools.visualize_pixel_array_feature(
+                self.sensors[:,np.newaxis], fov_horz_span=self.fov_horz_span,
+                fov_vert_span=self.fov_vert_span, array_only=True) 
         self.sensed_image.set_data(sensed_image_array[0])
-        interpreted_image_array = wtools.vizualize_pixel_array_feature(
-                interpretation[:self.num_sensors], array_only=True) 
+        interpreted_image_array = wtools.visualize_pixel_array_feature(
+                interpretation[:self.num_sensors],  
+                fov_horz_span=self.fov_horz_span,
+                fov_vert_span=self.fov_vert_span, array_only=True) 
         self.interpreted_image.set_data(interpreted_image_array[0])
         # Update status window 
-        self.age_status.set_text(''.join((
+        self.clip_time_status.set_text(''.join((
                 'Clip time: ', '%0.2f' % (self.clip_frame/(30.*60.)), ' min')))
-        self.cumulative_age_status.set_text(''.join((
-                'Total time: ', '%0.2f' % (self.timestep/(30.*60.)), ' min')))
-        surprise = agent.surprise_history[-1]
-        #surprise_mod = (np.log10(surprise + 1.) / 2.) - 1. 
-        #surprise_mod = np.minimum(surprise_mod, 1.)
-        surprise_mod = surprise
-        self.surprise_status.set_text(''.join((
-                'Novelty: ', '%0.2f' % surprise_mod)))
+        self.wake_time_status.set_text(''.join((
+                'Wake time: ', '%0.2f' % (self.timestep * self.frames_per_step
+                                           / (30.*60.)), ' min')))
+        self.life_time_status.set_text(''.join((
+                'Life time: ', '%0.2f' % (agent.timestep * self.frames_per_step
+                                           / (30.*60.)), ' min')))
+        self.surprise_status.set_text(''.join(( 
+                'Novelty: ', '%0.2f' % agent.surprise_history[-1])))
         # Update surprise visualization window
         # Clear all axes
         for axes in self.surprise_block_ax:
@@ -294,12 +302,13 @@ class World(BaseWorld):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             plt.gray()
-            im = ax.imshow(surprise_array * 0.6 + 0.2, aspect='auto', 
-                           interpolation='nearest', vmin=0., vmax=1.)
+            im = ax.imshow(surprise_array, aspect='auto', 
+                           interpolation='nearest', vmin=0., vmax=1., 
+                           cmap='copper')
             if block_index == 0:
                 ax.text(num_cogs_in_block * 0.85,
                         block.max_bundles_per_cog * 0.8, 
-                        'Novelty', color=tools.LIGHT_GREY, 
+                        'Novelty', color=tools.OXIDE, 
                         size=10, ha='left', va='bottom')
             self.surprise_block_ax.append(ax)
 
@@ -337,18 +346,21 @@ class World(BaseWorld):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             plt.gray()
-            im = ax.imshow(activity_array * 0.6 + 0.2, aspect='auto', 
-                           interpolation='nearest', vmin=0., vmax=1.)
+            im = ax.imshow(activity_array, aspect='auto', 
+                           interpolation='nearest', vmin=0., vmax=1.,
+                           cmap='copper')
             if block_index == 0:
                 ax.text(num_cogs_in_block * 0.85,
                         block.max_bundles_per_cog * 0.8, 
-                        'Activities', color=tools.LIGHT_GREY, 
+                        'Activities', color=tools.OXIDE, 
                         size=10, ha='left', va='bottom')
             self.block_ax.append(ax)
         if self.print_all_features:
             log_directory = os.path.join('becca_world_watch', 'log')
             wtools.print_pixel_array_features(projections, self.num_sensors,
                                               self.num_actions, 
+                                              self.fov_horz_span,
+                                              self.fov_vert_span, 
                                               directory=log_directory,
                                               world_name=self.name)
         self.fig.canvas.draw()
