@@ -25,22 +25,19 @@ class World(BaseWorld):
         # Flag indicates whether the world is in testing mode
         #self.short_test = False
         self.TEST = False
-        self.VISUALIZE_PERIOD =  10 ** 4
+        self.VISUALIZE_PERIOD =  10 ** 1
+        # Flag determines whether to plot all the features during display
         self.print_all_features = True
         self.fov_horz_span = 16
         self.fov_vert_span = 12
-        self.name = 'watch_world'
+        self.name = 'watch_world_12x16'
         print "Entering", self.name
         # Generate a list of the filenames to be used
         self.video_filenames = []
         extensions = ['.mpg', '.mp4', '.flv', '.avi']
         if self.TEST:
-            if self.short_test:
-                test_filename = 'test_short.avi'
-                truth_filename = 'truth_short.txt'
-            else:
-                test_filename = 'test_long.avi'
-                truth_filename = 'truth_long.txt'
+            test_filename = 'test_long.avi'
+            truth_filename = 'truth_long.txt'
             self.video_filenames = []
             self.video_filenames.append(os.path.join(
                     'becca_world_watch', 'test', test_filename))
@@ -55,8 +52,6 @@ class World(BaseWorld):
         # Initialize the video data to be viewed
         self.initialize_video_file()
 
-        #self.VALUE_RANGE_DECAY_RATE = 10 ** -1
-        #self.BIN_RANGE_DECAY_RATE = 10 ** -4
         self.num_sensors = 2 * self.fov_horz_span * self.fov_vert_span
         self.num_actions = 0
         self.initialize_control_panel()
@@ -68,13 +63,15 @@ class World(BaseWorld):
             self.surprise_log = open(self.surprise_log_filename, 'w')
 
     def initialize_video_file(self):
-        filename = self.video_filenames \
-                [np.random.randint(0, self.video_file_count)]
+        """ Queue up one of the video files and get it ready for processing """
+        filename = self.video_filenames[
+                np.random.randint(0, self.video_file_count)]
         print 'Loading', filename
         self.video_reader = cv2.VideoCapture(filename)
         self.clip_frame = 0
 
     def step(self, action): 
+        """ Advance the video one time step and read and process the frame """
         for _ in range(self.frames_per_step):
             ((success, image)) = self.video_reader.read() 
         # Check whether the end of the clip has been reached
@@ -93,7 +90,9 @@ class World(BaseWorld):
         self.timestep += 1
         self.clip_frame += self.frames_per_step
         image = image.astype('float') / 256.
+        # Convert the color image to grayscale
         self.intensity_image = np.sum(image, axis=2) / 3.
+        # Convert the grayscale to center-surround contrast pixels
         center_surround_pixels = wtools.center_surround(
                 self.intensity_image, self.fov_horz_span, self.fov_vert_span)
         unsplit_sensors = center_surround_pixels.ravel()
@@ -103,11 +102,11 @@ class World(BaseWorld):
         return self.sensors, reward
         
     def set_agent_parameters(self, agent):
+        """ Manually set some agent parameters, where required """
         agent.VISUALIZE_PERIOD = self.VISUALIZE_PERIOD
         if self.TEST:
             # Prevent the agent from adapting during testing
             agent.BACKUP_PERIOD = 10 ** 9
-            #agent.recent_surprise_history = [35.] * 100
             for block in agent.blocks:
                 block.ziptie.COACTIVITY_UPDATE_RATE = 0.
                 block.ziptie.JOINING_THRESHOLD = 2.
@@ -121,8 +120,10 @@ class World(BaseWorld):
                     cog.daisychain.CHAIN_UPDATE_RATE = 0.
         else:
             pass
+        return
     
     def initialize_control_panel(self):
+        """ Prepare the user display of the world's internal state """
         self.fig = cp.figure()
         self.ax_original_image = cp.subfigure(self.fig, 
                 left=0., bottom=0.4, width=0.45, height=0.6)
@@ -132,8 +133,6 @@ class World(BaseWorld):
                 left=0.3, bottom=0., width=0.3, height=0.4)
         self.ax_status = cp.subfigure(self.fig, 
                 left=0.45, bottom=0.4, width=0.15, height=0.6)
-        #self.ax_image_history = cp.subfigure(self.fig, 
-        #        left=0., bottom=0., width=0.35, height=0.4)
 
         # Initialize original image 
         plt.gray()
@@ -158,7 +157,6 @@ class World(BaseWorld):
                                     ha='left', va='center')
         self.ax_sensed_image.get_xaxis().set_visible(False)
         self.ax_sensed_image.get_yaxis().set_visible(False)
-
 
         # Initialize interpreted image
         plt.gray()
@@ -223,6 +221,7 @@ class World(BaseWorld):
         self.fig.show()
 
     def visualize(self, agent):
+        """ Update the display to the user of the world's internal state """
         if self.TEST:
             # Save the surprise value
             surprise_val = agent.surprise_history[-1]
@@ -278,7 +277,7 @@ class World(BaseWorld):
         num_blocks = len(agent.blocks)
         for block_index in range(num_blocks):
             block = agent.blocks[block_index]
-            block_surprise = block.surprise / 10.
+            block_surprise = block.surprise
             num_cogs_in_block = len(block.cogs)
             surprise_array = np.reshape(block_surprise, 
                                         (num_cogs_in_block,
@@ -294,8 +293,8 @@ class World(BaseWorld):
                             self.block_ax_vert_border +
                             (block_height + self.block_ax_vert_border) * 
                             block_index)
-            block_width = self.surprise_ax_width - \
-                            2 * self.block_ax_horz_border
+            block_width = (self.surprise_ax_width - 
+                           2 * self.block_ax_horz_border)
             last_block_top = block_bottom + block_height
             rect = (block_left, block_bottom, block_width, block_height)
             ax = self.fig.add_axes(rect, frame_on=False)
@@ -370,7 +369,7 @@ class World(BaseWorld):
         full_filename = os.path.join('becca_world_watch', 'frames', filename)
         self.frame_counter += 1
         plt.figure(self.fig.number)
-        plt.savefig(full_filename, format='png', dpi=80) # for 720
-        #plt.savefig(full_filename, format='png', dpi=120) # for 1080
+        #plt.savefig(full_filename, format='png', dpi=80) # for 720
+        plt.savefig(full_filename, format='png', dpi=120) # for 1080
         return
         
