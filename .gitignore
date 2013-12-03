@@ -10,6 +10,7 @@ tester_profile
 *.log
 *.bbl
 *.toc
+*.png
 *.blg
 *~
 build
